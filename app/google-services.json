@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "412156959366",
+    "project_id": "daily-tracker-app-d205c",
+    "storage_bucket": "daily-tracker-app-d205c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:412156959366:android:82d2f6a6889ef875c38f07",
+        "android_client_info": {
+          "package_name": "com.example.apptest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyClt46VcemXd3zFc6kuovqihsYsHZulu84"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
