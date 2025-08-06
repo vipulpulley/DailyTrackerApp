@@ -14,6 +14,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.firestore.FieldPath // Import FieldPath
 
 class HistoryActivity : AppCompatActivity() {
 
@@ -88,8 +89,8 @@ class HistoryActivity : AppCompatActivity() {
 
         Log.d("HISTORY_DEBUG", "Setting up Firestore listener for path: ${collectionRef.path}")
 
-        // Order entries by date in descending order (most recent first)
-        collectionRef.orderBy("date", Query.Direction.DESCENDING)
+        // --- THE FIX IS HERE: Order by document ID instead of a non-existent 'date' field ---
+        collectionRef.orderBy(FieldPath.documentId(), Query.Direction.DESCENDING)
             .addSnapshotListener { snapshots, e ->
                 if (e != null) {
                     Log.w("HISTORY_DEBUG", "Firestore listen failed. Error: ${e.message}", e)
