@@ -1,24 +1,29 @@
 package com.example.apptest // IMPORTANT: Ensure this matches your package name
 
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
+import android.view.Gravity
 import android.widget.LinearLayout
+import android.widget.TableLayout
+import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat // Import for ContextCompat
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.FieldPath // Import FieldPath
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import com.google.firebase.firestore.FieldPath // Import FieldPath
 
 class HistoryActivity : AppCompatActivity() {
 
-    private lateinit var historyEntriesLayout: LinearLayout
+    private lateinit var historyTableLayout: TableLayout // Changed to TableLayout
     private lateinit var db: FirebaseFirestore
     private lateinit var auth: FirebaseAuth
     private lateinit var userId: String
@@ -42,7 +47,7 @@ class HistoryActivity : AppCompatActivity() {
         db = Firebase.firestore
         Log.d("HISTORY_DEBUG", "FirebaseAuth and FirebaseFirestore instances obtained in HistoryActivity.")
 
-        historyEntriesLayout = findViewById(R.id.historyEntriesLayout)
+        historyTableLayout = findViewById(R.id.historyTableLayout) // Get reference to TableLayout
 
         // Get the userId passed from MainActivity
         userId = intent.getStringExtra("USER_ID") ?: run {
@@ -75,6 +80,18 @@ class HistoryActivity : AppCompatActivity() {
     }
 
     /**
+     * Helper function to get the color resource ID based on boolean state.
+     * Matches the logic used for buttons in MainActivity.
+     */
+    private fun getButtonColorResId(state: Boolean?): Int {
+        return when (state) {
+            true -> R.color.green_button
+            false -> R.color.red_button
+            null -> R.color.neutral_button // Use neutral for unset/null
+        }
+    }
+
+    /**
      * Sets up a real-time listener for daily entries from Firestore for the current user and profile.
      * Updates the history display whenever data changes.
      */
@@ -89,7 +106,7 @@ class HistoryActivity : AppCompatActivity() {
 
         Log.d("HISTORY_DEBUG", "Setting up Firestore listener for path: ${collectionRef.path}")
 
-        // --- THE FIX IS HERE: Order by document ID instead of a non-existent 'date' field ---
+        // Order entries by document ID in descending order (most recent first)
         collectionRef.orderBy(FieldPath.documentId(), Query.Direction.DESCENDING)
             .addSnapshotListener { snapshots, e ->
                 if (e != null) {
@@ -100,40 +117,83 @@ class HistoryActivity : AppCompatActivity() {
 
                 if (snapshots != null) {
                     Log.d("HISTORY_DEBUG", "Received ${snapshots.documents.size} documents from Firestore.")
-                    historyEntriesLayout.removeAllViews() // Clear all existing views
+                    // Remove all rows except the header row (index 0)
+                    if (historyTableLayout.childCount > 1) {
+                        historyTableLayout.removeViews(1, historyTableLayout.childCount - 1)
+                    }
 
                     if (snapshots.documents.isEmpty()) {
                         Log.d("HISTORY_DEBUG", "No documents found for this profile. Displaying 'No entries' message.")
+                        val noEntriesRow = TableRow(this)
                         val noEntriesTextView = TextView(this)
                         noEntriesTextView.text = "No past entries yet for $profileName."
                         noEntriesTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
-                        historyEntriesLayout.addView(noEntriesTextView)
+                        noEntriesTextView.gravity = Gravity.CENTER
+                        noEntriesTextView.setPadding(8, 8, 8, 8)
+                        noEntriesRow.addView(noEntriesTextView, TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT, 4f)) // Span all columns
+                        historyTableLayout.addView(noEntriesRow)
                     } else {
                         for (doc in snapshots.documents) {
                             val date = doc.id // Document ID is the date (e.g., "2025-08-06")
-                            val workout = doc.getBoolean("workout") ?: false
-                            val medicines = doc.getBoolean("medicines") ?: false
-                            val happy = doc.getBoolean("happy") ?: false
+                            val workout = doc.getBoolean("workout")
+                            val medicines = doc.getBoolean("medicines")
+                            val happy = doc.getBoolean("happy")
 
-                            val entryText = "$date:\n" +
-                                    "  Workout: ${if (workout) "Yes" else "No"}\n" +
-                                    "  Medicines: ${if (medicines) "Yes" else "No"}\n" +
-                                    "  Happy: ${if (happy) "Yes" else "No"}"
+                            val tableRow = TableRow(this)
+                            tableRow.layoutParams = TableLayout.LayoutParams(
+                                TableLayout.LayoutParams.MATCH_PARENT,
+                                TableLayout.LayoutParams.WRAP_CONTENT
+                            )
+                            tableRow.setPadding(0, 4, 0, 4) // Padding for the row
 
-                            Log.d("HISTORY_DEBUG", "Adding entry: $entryText")
-                            val entryTextView = TextView(this)
-                            entryTextView.text = entryText
-                            entryTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-                            entryTextView.setPadding(0, 8, 0, 8) // Add some padding between entries
-                            historyEntriesLayout.addView(entryTextView)
+                            // Date TextView
+                            val dateTextView = TextView(this)
+                            dateTextView.text = date
+                            dateTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                            dateTextView.gravity = Gravity.CENTER
+                            dateTextView.setPadding(8, 8, 8, 8)
+                            tableRow.addView(dateTextView, TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 2f)) // Weight 2 for date
+
+                            // Workout TextView
+                            val workoutTextView = TextView(this)
+                            workoutTextView.text = if (workout == true) "Yes" else if (workout == false) "No" else "-"
+                            workoutTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                            workoutTextView.gravity = Gravity.CENTER
+                            workoutTextView.setPadding(8, 8, 8, 8)
+                            workoutTextView.setBackgroundColor(ContextCompat.getColor(this, getButtonColorResId(workout)))
+                            tableRow.addView(workoutTextView, TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f))
+
+                            // Medicines TextView
+                            val medicinesTextView = TextView(this)
+                            medicinesTextView.text = if (medicines == true) "Yes" else if (medicines == false) "No" else "-"
+                            medicinesTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                            medicinesTextView.gravity = Gravity.CENTER
+                            medicinesTextView.setPadding(8, 8, 8, 8)
+                            medicinesTextView.setBackgroundColor(ContextCompat.getColor(this, getButtonColorResId(medicines)))
+                            tableRow.addView(medicinesTextView, TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f))
+
+                            // Happy TextView
+                            val happyTextView = TextView(this)
+                            happyTextView.text = if (happy == true) "Yes" else if (happy == false) "No" else "-"
+                            happyTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                            happyTextView.gravity = Gravity.CENTER
+                            happyTextView.setPadding(8, 8, 8, 8)
+                            happyTextView.setBackgroundColor(ContextCompat.getColor(this, getButtonColorResId(happy)))
+                            tableRow.addView(happyTextView, TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f))
+
+                            historyTableLayout.addView(tableRow)
                         }
                     }
                 } else {
                     Log.d("HISTORY_DEBUG", "Current data: null (snapshots object is null). Displaying 'No entries' message.")
+                    val noEntriesRow = TableRow(this)
                     val noEntriesTextView = TextView(this)
                     noEntriesTextView.text = "No past entries yet for $profileName."
                     noEntriesTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
-                    historyEntriesLayout.addView(noEntriesTextView)
+                    noEntriesTextView.gravity = Gravity.CENTER
+                    noEntriesTextView.setPadding(8, 8, 8, 8)
+                    noEntriesRow.addView(noEntriesTextView, TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT, 4f)) // Span all columns
+                    historyTableLayout.addView(noEntriesRow)
                 }
             }
     }

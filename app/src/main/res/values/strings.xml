@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">AppTest</string>
+    <string name="app_name">Zindagi</string>
     <!-- Add this line below -->
     <string name="app_id">daily_tracker_app_unique_id</string>
 </resources>
