@@ -49,6 +49,10 @@ dependencies {
     // Firebase Firestore
     implementation("com.google.firebase:firebase-firestore-ktx")
 
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:21.0.0") // Use the latest version if available
+
+
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
