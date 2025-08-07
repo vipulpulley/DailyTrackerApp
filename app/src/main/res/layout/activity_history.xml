@@ -5,7 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp"
-    tools:context="com.example.apptest.HistoryActivity"> <!-- IMPORTANT: Ensure this matches your package name -->
+    android:background="@color/app_background_color"
+    tools:context="com.example.apptest.HistoryActivity">
 
     <TextView
         android:id="@+id/historyTitleTextView"
@@ -14,10 +15,11 @@
         android:text="Past Daily Entries"
         android:textSize="28sp"
         android:textStyle="bold"
+        android:textColor="@color/white"
+        android:layout_marginTop="16dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <ScrollView
         android:layout_width="0dp"
@@ -28,64 +30,36 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <TableLayout
-            android:id="@+id/historyTableLayout"
+        <!-- Added HorizontalScrollView for horizontal scrolling -->
+        <HorizontalScrollView
             android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TableLayout
+                android:id="@+id/historyTableLayout"
+                android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:stretchColumns="*"
-            android:paddingBottom="16dp">
+            android:paddingBottom="16dp"
+            android:background="@drawable/rounded_white_background">
 
-            <!-- Table Header Row -->
-            <TableRow
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="#E0E0E0"
-                android:padding="8dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="2"
-                    android:text="Date"
-                    android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:gravity="center"
-                    android:textColor="@color/black" /> <!-- Added textColor -->
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Workout"
-                    android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:gravity="center"
-                    android:textColor="@color/black" /> <!-- Added textColor -->
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Meds"
-                    android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:gravity="center"
-                    android:textColor="@color/black" /> <!-- Added textColor -->
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Happy"
-                    android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:gravity="center"
-                    android:textColor="@color/black" /> <!-- Added textColor -->
-            </TableRow>
-
-            <!-- Data rows will be added dynamically here by Kotlin code -->
+            <!-- Table Header Row will be added dynamically here by Kotlin code -->
 
         </TableLayout>
-    </ScrollView>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </HorizontalScrollView>
+
+</ScrollView>
+
+    <!-- Logout Button -->
+<Button
+android:id="@+id/logoutButton"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Logout"
+android:layout_marginEnd="16dp"
+android:layout_marginBottom="16dp"
+app:layout_constraintBottom_toBottomOf="parent"
+app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>

@@ -2,4 +2,5 @@
     <string name="app_name">Zindagi</string>
     <!-- Add this line below -->
     <string name="app_id">daily_tracker_app_unique_id</string>
+    <string name="default_web_client_id">412156959366-inb073kuumtej78v24tsktff58nv8bka.apps.googleusercontent.com</string>
 </resources>

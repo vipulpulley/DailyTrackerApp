@@ -12,4 +12,6 @@
     <color name="green_button">#4CAF50</color> <!-- A nice green -->
     <color name="red_button">#F44336</color>   <!-- A nice red -->
     <color name="neutral_button">#6200EE</color> <!-- Default button color (purple_500) -->
+    <color name="app_background_color">#E6A700</color> <!-- Your icon's background color -->
+    <color name="light_gray_header">#E0E0E0</color>
 </resources>

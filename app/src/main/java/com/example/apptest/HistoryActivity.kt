@@ -1,33 +1,45 @@
 package com.example.apptest // IMPORTANT: Ensure this matches your package name
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
+import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat // Import for ContextCompat
+import androidx.core.content.ContextCompat
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.FieldPath // Import FieldPath
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import android.graphics.Typeface // Import Typeface
 
 class HistoryActivity : AppCompatActivity() {
 
-    private lateinit var historyTableLayout: TableLayout // Changed to TableLayout
+    private lateinit var historyTableLayout: TableLayout
     private lateinit var db: FirebaseFirestore
     private lateinit var auth: FirebaseAuth
     private lateinit var userId: String
     private lateinit var profileName: String
+    private lateinit var logoutButton: Button
+
+    private val customItemsList = mutableListOf<String>() // To store custom items for headers
+
+    // Google Sign-In client for logout
+    private lateinit var googleSignInClient: GoogleSignInClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +59,15 @@ class HistoryActivity : AppCompatActivity() {
         db = Firebase.firestore
         Log.d("HISTORY_DEBUG", "FirebaseAuth and FirebaseFirestore instances obtained in HistoryActivity.")
 
-        historyTableLayout = findViewById(R.id.historyTableLayout) // Get reference to TableLayout
+        // Configure Google Sign-In for logout
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
+
+        historyTableLayout = findViewById(R.id.historyTableLayout)
+        logoutButton = findViewById(R.id.logoutButton)
 
         // Get the userId passed from MainActivity
         userId = intent.getStringExtra("USER_ID") ?: run {
@@ -75,8 +95,13 @@ class HistoryActivity : AppCompatActivity() {
         Log.d("HISTORY_DEBUG", "History title set to: ${historyTitleTextView.text}")
 
 
-        // Set up the Firestore listener to display history
-        setupFirestoreListener()
+        // Set up Logout button
+        logoutButton.setOnClickListener {
+            signOutAndReturnToLogin()
+        }
+
+        // Load custom items first, then setup Firestore listener
+        loadCustomItemsForHistory()
     }
 
     /**
@@ -89,6 +114,97 @@ class HistoryActivity : AppCompatActivity() {
             false -> R.color.red_button
             null -> R.color.neutral_button // Use neutral for unset/null
         }
+    }
+
+    /**
+     * Loads the custom items (e.g., Workout, Medicines, Happy) for the current profile from Firestore.
+     * Then, it sets up the Firestore listener for daily entries.
+     */
+    private fun loadCustomItemsForHistory() {
+        val profileDocRef = db.collection("artifacts")
+            .document(getString(R.string.app_id))
+            .collection("users")
+            .document(userId)
+            .collection("profiles")
+            .document(profileName)
+
+        Log.d("HISTORY_DEBUG", "Loading custom items for profile: $profileName from path: ${profileDocRef.path}")
+
+        profileDocRef.get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    @Suppress("UNCHECKED_CAST")
+                    val items = document.get("custom_items") as? List<String>
+                    if (items != null && items.isNotEmpty()) {
+                        customItemsList.clear()
+                        customItemsList.addAll(items)
+                        Log.d("HISTORY_DEBUG", "Custom items loaded: $customItemsList")
+                        createTableHeader() // Create headers based on loaded items
+                        setupFirestoreListener() // Setup listener after headers are ready
+                    } else {
+                        Log.d("HISTORY_DEBUG", "No 'custom_items' field or it's empty. Displaying empty history.")
+                        customItemsList.clear() // Ensure list is clear if no items found
+                        createTableHeader() // Still create header (Date only)
+                        setupFirestoreListener() // Setup listener (will show no entries)
+                    }
+                } else {
+                    Log.d("HISTORY_DEBUG", "Profile document does not exist. Cannot load custom items for history.")
+                    customItemsList.clear() // Ensure list is clear if profile doesn't exist
+                    createTableHeader() // Still create header (Date only)
+                    setupFirestoreListener() // Setup listener (will show no entries)
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.w("HISTORY_DEBUG", "Error loading custom items for history", e)
+                Toast.makeText(this, "Error loading custom items for history: ${e.message}", Toast.LENGTH_LONG).show()
+                customItemsList.clear() // Ensure list is clear on error
+                createTableHeader() // Fallback to just date header on error
+                setupFirestoreListener() // Setup listener
+            }
+    }
+
+    /**
+     * Dynamically creates the table header row based on customItemsList.
+     */
+    private fun createTableHeader() {
+        // Ensure only one header row exists
+        if (historyTableLayout.childCount > 0) {
+            historyTableLayout.removeViews(0, historyTableLayout.childCount) // Clear all views including old header
+        }
+
+        val headerRow = TableRow(this).apply {
+            layoutParams = TableLayout.LayoutParams(
+                TableLayout.LayoutParams.MATCH_PARENT,
+                TableLayout.LayoutParams.WRAP_CONTENT
+            )
+            setBackgroundColor(ContextCompat.getColor(context, R.color.light_gray_header)) // Use a light gray for header
+            setPadding(8, 8, 8, 8)
+        }
+
+        // Date Header
+        val dateHeader = TextView(this).apply {
+            layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 2f)
+            text = "Date"
+            setTypeface(null, Typeface.BOLD) // FIX: Use setTypeface for bold
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f) // FIX: Use setTextSize for sp
+            gravity = Gravity.CENTER
+            setTextColor(ContextCompat.getColor(context, R.color.black))
+        }
+        headerRow.addView(dateHeader)
+
+        // Custom Item Headers
+        for (itemName in customItemsList) {
+            val itemHeader = TextView(this).apply {
+                layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f)
+                text = itemName // Use item name as header
+                setTypeface(null, Typeface.BOLD) // FIX: Use setTypeface for bold
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f) // FIX: Use setTextSize for sp
+                gravity = Gravity.CENTER
+                setTextColor(ContextCompat.getColor(context, R.color.black))
+            }
+            headerRow.addView(itemHeader)
+        }
+        historyTableLayout.addView(headerRow)
     }
 
     /**
@@ -127,24 +243,25 @@ class HistoryActivity : AppCompatActivity() {
                         val noEntriesRow = TableRow(this)
                         val noEntriesTextView = TextView(this)
                         noEntriesTextView.text = "No past entries yet for $profileName."
+                        // Use setTextSize for sp
                         noEntriesTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
                         noEntriesTextView.gravity = Gravity.CENTER
                         noEntriesTextView.setPadding(8, 8, 8, 8)
-                        noEntriesRow.addView(noEntriesTextView, TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT, 4f)) // Span all columns
+                        noEntriesTextView.setTextColor(ContextCompat.getColor(this, R.color.black))
+                        // Span across all columns (date + custom items)
+                        val spanCount = 2 + customItemsList.size // 2 for date, plus number of custom items
+                        noEntriesRow.addView(noEntriesTextView, TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT, spanCount.toFloat()))
                         historyTableLayout.addView(noEntriesRow)
                     } else {
                         for (doc in snapshots.documents) {
                             val date = doc.id // Document ID is the date (e.g., "2025-08-06")
-                            val workout = doc.getBoolean("workout")
-                            val medicines = doc.getBoolean("medicines")
-                            val happy = doc.getBoolean("happy")
 
                             val tableRow = TableRow(this)
                             tableRow.layoutParams = TableLayout.LayoutParams(
                                 TableLayout.LayoutParams.MATCH_PARENT,
                                 TableLayout.LayoutParams.WRAP_CONTENT
                             )
-                            tableRow.setPadding(0, 4, 0, 4) // Padding for the row
+                            tableRow.setPadding(0, 4, 0, 4)
 
                             // Date TextView
                             val dateTextView = TextView(this)
@@ -152,35 +269,21 @@ class HistoryActivity : AppCompatActivity() {
                             dateTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                             dateTextView.gravity = Gravity.CENTER
                             dateTextView.setPadding(8, 8, 8, 8)
-                            tableRow.addView(dateTextView, TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 2f)) // Weight 2 for date
+                            dateTextView.setTextColor(ContextCompat.getColor(this, R.color.black))
+                            tableRow.addView(dateTextView, TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 2f))
 
-                            // Workout TextView
-                            val workoutTextView = TextView(this)
-                            workoutTextView.text = if (workout == true) "Yes" else if (workout == false) "No" else "-"
-                            workoutTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-                            workoutTextView.gravity = Gravity.CENTER
-                            workoutTextView.setPadding(8, 8, 8, 8)
-                            workoutTextView.setBackgroundColor(ContextCompat.getColor(this, getButtonColorResId(workout)))
-                            tableRow.addView(workoutTextView, TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f))
-
-                            // Medicines TextView
-                            val medicinesTextView = TextView(this)
-                            medicinesTextView.text = if (medicines == true) "Yes" else if (medicines == false) "No" else "-"
-                            medicinesTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-                            medicinesTextView.gravity = Gravity.CENTER
-                            medicinesTextView.setPadding(8, 8, 8, 8)
-                            medicinesTextView.setBackgroundColor(ContextCompat.getColor(this, getButtonColorResId(medicines)))
-                            tableRow.addView(medicinesTextView, TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f))
-
-                            // Happy TextView
-                            val happyTextView = TextView(this)
-                            happyTextView.text = if (happy == true) "Yes" else if (happy == false) "No" else "-"
-                            happyTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-                            happyTextView.gravity = Gravity.CENTER
-                            happyTextView.setPadding(8, 8, 8, 8)
-                            happyTextView.setBackgroundColor(ContextCompat.getColor(this, getButtonColorResId(happy)))
-                            tableRow.addView(happyTextView, TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f))
-
+                            // Dynamically add TextViews for each custom item
+                            for (itemName in customItemsList) {
+                                val itemState = doc.getBoolean(itemName) // Get state for this item
+                                val itemTextView = TextView(this)
+                                itemTextView.text = if (itemState == true) "Yes" else if (itemState == false) "No" else "-"
+                                itemTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                                itemTextView.gravity = Gravity.CENTER
+                                itemTextView.setPadding(8, 8, 8, 8)
+                                itemTextView.setBackgroundColor(ContextCompat.getColor(this, getButtonColorResId(itemState)))
+                                itemTextView.setTextColor(ContextCompat.getColor(this, R.color.white))
+                                tableRow.addView(itemTextView, TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f))
+                            }
                             historyTableLayout.addView(tableRow)
                         }
                     }
@@ -192,9 +295,25 @@ class HistoryActivity : AppCompatActivity() {
                     noEntriesTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
                     noEntriesTextView.gravity = Gravity.CENTER
                     noEntriesTextView.setPadding(8, 8, 8, 8)
-                    noEntriesRow.addView(noEntriesTextView, TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT, 4f)) // Span all columns
+                    noEntriesTextView.setTextColor(ContextCompat.getColor(this, R.color.black))
+                    val spanCount = 2 + customItemsList.size
+                    noEntriesRow.addView(noEntriesTextView, TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT, spanCount.toFloat()))
                     historyTableLayout.addView(noEntriesRow)
                 }
             }
+    }
+
+    /**
+     * Signs out the current Firebase user and Google account, then returns to LoginActivity.
+     */
+    private fun signOutAndReturnToLogin() {
+        auth.signOut()
+        googleSignInClient.signOut().addOnCompleteListener(this) {
+            Log.d("HISTORY_DEBUG", "Google Sign-Out successful.")
+            Toast.makeText(this, "Signed out.", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivity(intent)
+            finish() // Finish HistoryActivity when logging out
+        }
     }
 }
