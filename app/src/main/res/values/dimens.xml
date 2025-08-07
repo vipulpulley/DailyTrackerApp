@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="button_margin_end">8dp</dimen>
+    <dimen name="button_margin_horizontal">4dp</dimen> <!-- New -->
+    <dimen name="button_margin_vertical">8dp</dimen>   <!-- New -->
 </resources>

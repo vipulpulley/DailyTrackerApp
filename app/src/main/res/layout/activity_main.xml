@@ -26,14 +26,15 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Container for dynamically added buttons -->
-    <LinearLayout
+    <!-- Container for dynamically added buttons - NOW A FLEXBOXLAYOUT -->
+    <com.google.android.flexbox.FlexboxLayout
         android:id="@+id/dynamicButtonContainer"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
         android:layout_marginTop="32dp"
+        app:flexWrap="wrap"
+        app:justifyContent="flex_start"
+        app:alignItems="flex_start"
         app:layout_constraintTop_toBottomOf="@id/currentDateTextView"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -46,8 +47,8 @@
         android:text="Submit Entry"
         android:layout_marginTop="32dp"
         app:layout_constraintTop_toBottomOf="@id/dynamicButtonContainer"
-    app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- View Past Entries Button -->
     <Button

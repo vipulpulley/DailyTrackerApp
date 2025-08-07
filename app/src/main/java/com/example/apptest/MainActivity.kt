@@ -23,12 +23,14 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import com.google.android.flexbox.FlexboxLayout // Import FlexboxLayout
+import android.text.TextUtils
 
 class MainActivity : AppCompatActivity() {
 
     // UI elements
     private lateinit var currentDateTextView: TextView
-    private lateinit var dynamicButtonContainer: LinearLayout // Container for dynamic buttons
+    private lateinit var dynamicButtonContainer: FlexboxLayout // Changed to FlexboxLayout
     private lateinit var submitButton: Button
     private lateinit var viewHistoryButton: Button
     private lateinit var logoutButton: Button
@@ -71,7 +73,7 @@ class MainActivity : AppCompatActivity() {
 
         // Get references to UI elements
         currentDateTextView = findViewById(R.id.currentDateTextView)
-        dynamicButtonContainer = findViewById(R.id.dynamicButtonContainer) // Reference the new container
+        dynamicButtonContainer = findViewById(R.id.dynamicButtonContainer) // Reference the FlexboxLayout
         submitButton = findViewById(R.id.submitButton)
         viewHistoryButton = findViewById(R.id.viewHistoryButton)
         logoutButton = findViewById(R.id.logoutButton)
@@ -198,39 +200,32 @@ class MainActivity : AppCompatActivity() {
         dynamicButtonContainer.removeAllViews() // Clear existing buttons
         itemStates.clear() // Clear previous states
 
-        val defaultButtonWidth = 0 // Corresponds to layout_weight
-        val defaultButtonHeight = ViewGroup.LayoutParams.WRAP_CONTENT
-        val defaultButtonWeight = 1f
-
         for (itemName in customItemsList) {
-            val button = Button(this) // Create the button instance
-            // Create new LayoutParams for each button instance
-            val params = LinearLayout.LayoutParams(
-                defaultButtonWidth,
-                defaultButtonHeight,
-                defaultButtonWeight
-            )
-            button.layoutParams = params // Assign the newly created params to the button
+            val button = Button(this)
+            // Use FlexboxLayout.LayoutParams for buttons inside FlexboxLayout
+            val params = FlexboxLayout.LayoutParams(
+                FlexboxLayout.LayoutParams.WRAP_CONTENT, // Width will wrap content
+                FlexboxLayout.LayoutParams.WRAP_CONTENT // Height will wrap content
+            ).apply {
+                // Add margins for spacing between buttons
+                setMargins(
+                    resources.getDimensionPixelSize(R.dimen.button_margin_horizontal),
+                    resources.getDimensionPixelSize(R.dimen.button_margin_vertical),
+                    resources.getDimensionPixelSize(R.dimen.button_margin_horizontal),
+                    resources.getDimensionPixelSize(R.dimen.button_margin_vertical)
+                )
+            }
+            button.layoutParams = params
 
             button.text = itemName
             button.setOnClickListener { toggleButtonState(button, itemName) }
+            // Ensure single line and no ellipsize for buttons
+            button.setSingleLine(true)
+            button.ellipsize = TextUtils.TruncateAt.END // Add ellipsis if text is too long for the button itself
             button.backgroundTintList = ContextCompat.getColorStateList(this@MainActivity, R.color.neutral_button)
 
             dynamicButtonContainer.addView(button)
             itemStates[itemName] = null // Initialize state for each new button
-        }
-
-        // Apply margin to all buttons except the last one AFTER they are added to the container
-        for (i in 0 until dynamicButtonContainer.childCount) {
-            val button = dynamicButtonContainer.getChildAt(i) as Button
-            val params = button.layoutParams as LinearLayout.LayoutParams
-            if (i < dynamicButtonContainer.childCount - 1) {
-                params.marginEnd = resources.getDimensionPixelSize(R.dimen.button_margin_end)
-            } else {
-                params.marginEnd = 0 // No margin for the last button
-            }
-            // No need to reassign button.layoutParams = params here, as params is a direct reference
-            // and changes to it will reflect on the button's layoutParams.
         }
     }
 

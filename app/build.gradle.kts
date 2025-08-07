@@ -52,6 +52,9 @@ dependencies {
     // Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.0.0") // Use the latest version if available
 
+    // FlexboxLayout for dynamic button wrapping
+    implementation("com.google.android.flexbox:flexbox:3.0.0")
+
 
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")

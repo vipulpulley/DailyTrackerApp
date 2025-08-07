@@ -3,6 +3,7 @@ package com.example.apptest // IMPORTANT: Ensure this matches your package name
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.text.TextUtils
 import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
@@ -14,9 +15,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
@@ -25,7 +23,10 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import android.graphics.Typeface // Import Typeface
+import android.graphics.Typeface
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.auth.api.signin.GoogleSignIn
 
 class HistoryActivity : AppCompatActivity() {
 
@@ -183,10 +184,11 @@ class HistoryActivity : AppCompatActivity() {
 
         // Date Header
         val dateHeader = TextView(this).apply {
-            layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 2f)
+            // Use WRAP_CONTENT for width to allow expansion, no weight here
+            layoutParams = TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT)
             text = "Date"
-            setTypeface(null, Typeface.BOLD) // FIX: Use setTypeface for bold
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f) // FIX: Use setTextSize for sp
+            setTypeface(null, Typeface.BOLD)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             gravity = Gravity.CENTER
             setTextColor(ContextCompat.getColor(context, R.color.black))
         }
@@ -195,10 +197,11 @@ class HistoryActivity : AppCompatActivity() {
         // Custom Item Headers
         for (itemName in customItemsList) {
             val itemHeader = TextView(this).apply {
-                layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f)
-                text = itemName // Use item name as header
-                setTypeface(null, Typeface.BOLD) // FIX: Use setTypeface for bold
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f) // FIX: Use setTextSize for sp
+                // Use WRAP_CONTENT for width to allow expansion, no weight here
+                layoutParams = TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT)
+                text = "$itemName " // FIX: Added a space after the item name
+                setTypeface(null, Typeface.BOLD)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
                 gravity = Gravity.CENTER
                 setTextColor(ContextCompat.getColor(context, R.color.black))
             }
@@ -243,13 +246,11 @@ class HistoryActivity : AppCompatActivity() {
                         val noEntriesRow = TableRow(this)
                         val noEntriesTextView = TextView(this)
                         noEntriesTextView.text = "No past entries yet for $profileName."
-                        // Use setTextSize for sp
                         noEntriesTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
                         noEntriesTextView.gravity = Gravity.CENTER
                         noEntriesTextView.setPadding(8, 8, 8, 8)
                         noEntriesTextView.setTextColor(ContextCompat.getColor(this, R.color.black))
-                        // Span across all columns (date + custom items)
-                        val spanCount = 2 + customItemsList.size // 2 for date, plus number of custom items
+                        val spanCount = 1 + customItemsList.size // 1 for date, plus number of custom items
                         noEntriesRow.addView(noEntriesTextView, TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT, spanCount.toFloat()))
                         historyTableLayout.addView(noEntriesRow)
                     } else {
@@ -270,7 +271,7 @@ class HistoryActivity : AppCompatActivity() {
                             dateTextView.gravity = Gravity.CENTER
                             dateTextView.setPadding(8, 8, 8, 8)
                             dateTextView.setTextColor(ContextCompat.getColor(this, R.color.black))
-                            tableRow.addView(dateTextView, TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 2f))
+                            tableRow.addView(dateTextView, TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT))
 
                             // Dynamically add TextViews for each custom item
                             for (itemName in customItemsList) {
@@ -282,7 +283,7 @@ class HistoryActivity : AppCompatActivity() {
                                 itemTextView.setPadding(8, 8, 8, 8)
                                 itemTextView.setBackgroundColor(ContextCompat.getColor(this, getButtonColorResId(itemState)))
                                 itemTextView.setTextColor(ContextCompat.getColor(this, R.color.white))
-                                tableRow.addView(itemTextView, TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f))
+                                tableRow.addView(itemTextView, TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT))
                             }
                             historyTableLayout.addView(tableRow)
                         }
@@ -296,7 +297,7 @@ class HistoryActivity : AppCompatActivity() {
                     noEntriesTextView.gravity = Gravity.CENTER
                     noEntriesTextView.setPadding(8, 8, 8, 8)
                     noEntriesTextView.setTextColor(ContextCompat.getColor(this, R.color.black))
-                    val spanCount = 2 + customItemsList.size
+                    val spanCount = 1 + customItemsList.size
                     noEntriesRow.addView(noEntriesTextView, TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT, spanCount.toFloat()))
                     historyTableLayout.addView(noEntriesRow)
                 }
