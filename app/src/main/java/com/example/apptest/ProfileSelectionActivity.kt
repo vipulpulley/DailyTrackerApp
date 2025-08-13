@@ -93,6 +93,10 @@ class ProfileSelectionActivity : AppCompatActivity() {
                 // Handle manage items click (navigate to ManageItemsActivity)
                 Log.d("PROFILE_SELECT_ACTIVITY", "Manage Items clicked for profile: $profileToManage")
                 navigateToManageItemsActivity(profileToManage)
+            },
+            onDeleteProfileClick = { profileToDelete -> // New callback for delete
+                Log.d("PROFILE_SELECT_ACTIVITY", "Delete Profile clicked for: $profileToDelete")
+                confirmDeleteProfile(profileToDelete)
             }
         )
         profilesRecyclerView.adapter = profileAdapter
@@ -205,6 +209,84 @@ class ProfileSelectionActivity : AppCompatActivity() {
                 Toast.makeText(this, "Error adding profile: ${e.message}", Toast.LENGTH_LONG).show()
             }
     }
+
+    /**
+     * Shows a confirmation dialog before deleting a profile.
+     * @param profileToDelete The name of the profile to be deleted.
+     */
+    private fun confirmDeleteProfile(profileToDelete: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Delete Profile")
+            .setMessage("Are you sure you want to delete profile '$profileToDelete'? This will permanently delete ALL its associated data (daily entries, custom items) and cannot be undone.")
+            .setPositiveButton("Delete") { dialog, _ ->
+                deleteProfile(profileToDelete)
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.cancel()
+            }
+            .show()
+    }
+
+    /**
+     * Deletes a profile and all its subcollections from Firestore.
+     * @param profileName The name of the profile to delete.
+     */
+    private fun deleteProfile(profileName: String) {
+        val profileDocRef = db.collection("artifacts")
+            .document(getString(R.string.app_id))
+            .collection("users")
+            .document(userId)
+            .collection("profiles")
+            .document(profileName)
+
+        // Step 1: Delete all documents in the 'daily_tracker' subcollection
+        profileDocRef.collection("daily_tracker")
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                val batch = db.batch()
+                for (document in querySnapshot.documents) {
+                    batch.delete(document.reference)
+                }
+                batch.commit()
+                    .addOnSuccessListener {
+                        Log.d("PROFILE_SELECT_ACTIVITY", "Daily tracker subcollection deleted for profile: $profileName")
+                        // Step 2: Delete the profile document itself
+                        profileDocRef.delete()
+                            .addOnSuccessListener {
+                                Log.d("PROFILE_SELECT_ACTIVITY", "Profile '$profileName' document deleted from Firestore.")
+                                Toast.makeText(this, "Profile '$profileName' deleted!", Toast.LENGTH_SHORT).show()
+                                // Update local list and UI
+                                profileList.remove(profileName)
+                                profileAdapter.notifyDataSetChanged() // Notify adapter of data change
+
+                                // If the deleted profile was the last used one, clear it from SharedPreferences
+                                val lastUsed = sharedPreferences.getString(KEY_LAST_USERNAME, "")
+                                if (lastUsed == profileName) {
+                                    sharedPreferences.edit().remove(KEY_LAST_USERNAME).apply()
+                                }
+
+                                // If no profiles left, prompt to add new
+                                if (profileList.isEmpty()) {
+                                    showAddProfileDialog()
+                                }
+                            }
+                            .addOnFailureListener { e ->
+                                Log.w("PROFILE_SELECT_ACTIVITY", "Error deleting profile document", e)
+                                Toast.makeText(this, "Error deleting profile: ${e.message}", Toast.LENGTH_LONG).show()
+                            }
+                    }
+                    .addOnFailureListener { e ->
+                        Log.w("PROFILE_SELECT_ACTIVITY", "Error deleting daily tracker subcollection", e)
+                        Toast.makeText(this, "Error deleting profile data: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.w("PROFILE_SELECT_ACTIVITY", "Error getting daily tracker subcollection for deletion", e)
+                Toast.makeText(this, "Error preparing to delete profile: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
 
     /**
      * Navigates to MainActivity with the selected profile name.
