@@ -10,39 +10,39 @@
     android:focusable="true"
     android:background="?android:attr/selectableItemBackground">
 
-<TextView
-android:id="@+id/profileNameTextView"
-android:layout_width="0dp"
-android:layout_height="wrap_content"
-android:layout_weight="1"
-android:textSize="20sp"
-android:textStyle="bold"
-android:paddingStart="8dp"
-android:paddingEnd="8dp"
-android:text="Profile Name"
-android:textColor="@color/black" />
+    <TextView
+        android:id="@+id/profileNameTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="Profile Name"
+        android:textColor="@color/black" />
 
-<Button
-android:id="@+id/manageItemsButton"
-android:layout_width="wrap_content"
-android:layout_height="wrap_content"
-android:text="Manage Items"
-android:textSize="12sp"
-android:paddingStart="12dp"
-android:paddingEnd="12dp"
-android:minWidth="0dp"
-android:minHeight="0dp"
-android:layout_marginStart="8dp"
-android:backgroundTint="@color/neutral_button" />
+    <Button
+        android:id="@+id/manageItemsButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Manage Items"
+        android:textSize="12sp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:layout_marginStart="8dp"
+        android:backgroundTint="#E0E0E0" /> <!-- Changed to light grey hex color -->
 
-<ImageButton
-android:id="@+id/deleteProfileButton"
-android:layout_width="40dp"
-android:layout_height="40dp"
-android:src="@android:drawable/ic_menu_delete"
-android:background="?attr/selectableItemBackgroundBorderless"
-android:contentDescription="Delete profile"
-app:tint="@color/red_button"
-    android:layout_marginStart="8dp" />
+    <ImageButton
+        android:id="@+id/deleteProfileButton"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@android:drawable/ic_menu_delete"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Delete profile"
+        app:tint="@color/red_button"
+        android:layout_marginStart="8dp" />
 
-    </LinearLayout>
+</LinearLayout>
