@@ -130,10 +130,8 @@ class ManageItemsActivity : AppCompatActivity() {
             updateNotificationSettingsInFirestore(true) // Show toast on user action
             if (isChecked) {
                 requestNotificationPermission() // Request permission when enabling
-            } else {
-                NotificationScheduler.cancelReminder(this, userId, profileName) // Cancel alarm if disabled
-                Toast.makeText(this, "Notifications disabled for $profileName.", Toast.LENGTH_SHORT).show()
             }
+            // The cancel reminder toast is now handled within updateNotificationSettingsInFirestore(true)
         }
 
         // Set up notification time picker listener
@@ -180,7 +178,7 @@ class ManageItemsActivity : AppCompatActivity() {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(this, "Notification permission granted!", Toast.LENGTH_SHORT).show()
                 // If permission granted, schedule the reminder
-                NotificationScheduler.scheduleReminder(this, userId, profileName, notificationHour, notificationMinute)
+                NotificationScheduler.scheduleReminder(this, userId, profileName, notificationHour, notificationMinute, true) // Pass true for toast
             } else {
                 Toast.makeText(this, "Notification permission denied. Reminders may not work.", Toast.LENGTH_LONG).show()
                 notificationToggle.isChecked = false // Turn off toggle if permission denied
@@ -199,11 +197,7 @@ class ManageItemsActivity : AppCompatActivity() {
             notificationMinute = minute
             updateNotificationTimeDisplay()
             updateNotificationSettingsInFirestore(true) // Show toast on user action
-            // Reschedule notification with new time if enabled
-            if (notificationEnabled) {
-                NotificationScheduler.scheduleReminder(this, userId, profileName, notificationHour, notificationMinute)
-                Toast.makeText(this, "Reminder time updated and scheduled!", Toast.LENGTH_SHORT).show()
-            }
+            // The schedule reminder toast is now handled within updateNotificationSettingsInFirestore(true)
         }
         val timePickerDialog = TimePickerDialog(this, timeSetListener, notificationHour, notificationMinute, false) // false for 12-hour format
         timePickerDialog.show()
@@ -267,9 +261,9 @@ class ManageItemsActivity : AppCompatActivity() {
                     notificationToggle.isChecked = notificationEnabled
                     updateNotificationTimeDisplay()
 
-                    // Schedule/cancel reminder based on loaded state
+                    // Schedule/cancel reminder based on loaded state (without toast)
                     if (notificationEnabled) {
-                        NotificationScheduler.scheduleReminder(this, userId, profileName, notificationHour, notificationMinute)
+                        NotificationScheduler.scheduleReminder(this, userId, profileName, notificationHour, notificationMinute, false) // Pass false for toast
                     } else {
                         NotificationScheduler.cancelReminder(this, userId, profileName)
                     }
@@ -353,16 +347,16 @@ class ManageItemsActivity : AppCompatActivity() {
                 Log.d("NOTIFICATION", "Notification settings updated in Firestore: Enabled=$notificationEnabled, Time=$timeString")
                 if (showToast) { // Only show toast if explicitly requested
                     if (notificationEnabled) {
-                        NotificationScheduler.scheduleReminder(this, userId, profileName, notificationHour, notificationMinute)
-                        Toast.makeText(this, "Daily reminder scheduled for $timeString!", Toast.LENGTH_SHORT).show()
+                        NotificationScheduler.scheduleReminder(this, userId, profileName, notificationHour, notificationMinute, true) // Pass true for toast
                     } else {
+                        // FIX: Explicitly show cancel toast when showToast is true and notification is disabled
                         NotificationScheduler.cancelReminder(this, userId, profileName)
                         Toast.makeText(this, "Daily reminder cancelled for $profileName.", Toast.LENGTH_SHORT).show()
                     }
                 } else {
                     // If not showing toast, just schedule/cancel based on state
                     if (notificationEnabled) {
-                        NotificationScheduler.scheduleReminder(this, userId, profileName, notificationHour, notificationMinute)
+                        NotificationScheduler.scheduleReminder(this, userId, profileName, notificationHour, notificationMinute, false) // Pass false for toast
                     } else {
                         NotificationScheduler.cancelReminder(this, userId, profileName)
                     }

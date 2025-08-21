@@ -165,7 +165,8 @@ class DailyReminderReceiver : BroadcastReceiver() {
                                             val parts = timeString.split(":")
                                             val hour = parts[0].toInt()
                                             val minute = parts[1].toInt()
-                                            NotificationScheduler.scheduleReminder(context, userId, profileName, hour, minute)
+                                            // FIX: Pass 'false' for showToast when rescheduling on boot
+                                            NotificationScheduler.scheduleReminder(context, userId, profileName, hour, minute, false)
                                             Log.d("DAILY_REMINDER_RECEIVER", "Rescheduled reminder for $profileName at $timeString.")
                                         } catch (e: Exception) {
                                             Log.e("DAILY_REMINDER_RECEIVER", "Error parsing time for rescheduling profile $profileName: $timeString", e)
