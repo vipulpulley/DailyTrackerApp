@@ -58,6 +58,13 @@ object NotificationScheduler {
             }
         }
 
+        // Determine the toast message based on the time
+        val toastMessage = if (hourOfDay == 20 && minute == 0) { // 8 PM check
+            "Daily reminder scheduled for 8 PM!"
+        } else {
+            "Daily reminder scheduled for ${SimpleDateFormat("hh:mm a", Locale.getDefault()).format(calendar.time)}!"
+        }
+
         // Use setExactAndAllowWhileIdle for exact alarms (for Android M+)
         // Use setAlarmClock for Android N+ for better reliability (shows next alarm in status bar)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -67,29 +74,29 @@ object NotificationScheduler {
                     val alarmClockInfo = AlarmManager.AlarmClockInfo(calendar.timeInMillis, null) // No show intent
                     alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
                     Log.d("NOTIFICATION_SCHEDULER", "Exact alarm (AlarmClock) scheduled for $profileName at ${calendar.time} (ReqCode: $requestCode)")
-                    if (showToast) { // Only show toast if requested
-                        Toast.makeText(context, "Daily reminder scheduled for ${SimpleDateFormat("hh:mm a", Locale.getDefault()).format(calendar.time)}!", Toast.LENGTH_SHORT).show()
+                    if (showToast) {
+                        Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
                     }
                 } else {
                     // Fallback if permission not granted
                     alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pendingIntent)
                     Log.w("NOTIFICATION_SCHEDULER", "SCHEDULE_EXACT_ALARM permission not granted. Falling back to setExactAndAllowWhileIdle for $profileName at ${calendar.time} (ReqCode: $requestCode)")
-                    if (showToast) { // FIX: Only show toast if requested, even for fallback message
-                        Toast.makeText(context, "Reminder scheduled (permission needed for exact)!", Toast.LENGTH_SHORT).show()
+                    if (showToast) { // FIX: Use the 'toastMessage' here if showToast is true
+                        Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
                     }
                 }
             } else {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pendingIntent)
                 Log.d("NOTIFICATION_SCHEDULER", "Exact alarm (setExactAndAllowWhileIdle) scheduled for $profileName at ${calendar.time} (ReqCode: $requestCode)")
-                if (showToast) { // Only show toast if requested
-                    Toast.makeText(context, "Daily reminder scheduled for ${SimpleDateFormat("hh:mm a", Locale.getDefault()).format(calendar.time)}!", Toast.LENGTH_SHORT).show()
+                if (showToast) {
+                    Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
                 }
             }
         } else {
             alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, AlarmManager.INTERVAL_DAY, pendingIntent)
             Log.d("NOTIFICATION_SCHEDULER", "Repeating alarm scheduled for $profileName at ${calendar.time} (ReqCode: $requestCode)")
-            if (showToast) { // Only show toast if requested
-                Toast.makeText(context, "Daily reminder scheduled for ${SimpleDateFormat("hh:mm a", Locale.getDefault()).format(calendar.time)}!", Toast.LENGTH_SHORT).show()
+            if (showToast) {
+                Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
             }
         }
     }
