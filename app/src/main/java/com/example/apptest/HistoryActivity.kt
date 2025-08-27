@@ -7,6 +7,7 @@ import android.text.TextUtils
 import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.View // Import View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TableLayout
@@ -27,6 +28,10 @@ import android.graphics.Typeface
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.auth.api.signin.GoogleSignIn
+import java.text.SimpleDateFormat // Import SimpleDateFormat
+import java.util.Calendar // Import Calendar
+import java.util.Date // Import Date
+import java.util.Locale // Import Locale
 
 class HistoryActivity : AppCompatActivity() {
 
@@ -229,14 +234,17 @@ class HistoryActivity : AppCompatActivity() {
         collectionRef.orderBy(FieldPath.documentId(), Query.Direction.DESCENDING)
             .addSnapshotListener { snapshots, e ->
                 if (e != null) {
-                    Log.w("HISTORY_DEBUG", "Firestore listen failed. Error: ${e.message}", e)
-                    Toast.makeText(this, "Failed to load history: ${e.message}", Toast.LENGTH_LONG).show()
+                    if (e.message?.contains("FAILED_PRECONDITION") == true) {
+                        Log.w("HISTORY_DEBUG", "Firestore listen failed (FAILED_PRECONDITION). This usually means a missing index. Error: ${e.message}", e)
+                    } else {
+                        Log.w("HISTORY_DEBUG", "Firestore listen failed. Error: ${e.message}", e)
+                        Toast.makeText(this, "Failed to load history: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
                     return@addSnapshotListener
                 }
 
                 if (snapshots != null) {
                     Log.d("HISTORY_DEBUG", "Received ${snapshots.documents.size} documents from Firestore.")
-                    // Remove all rows except the header row (index 0)
                     if (historyTableLayout.childCount > 1) {
                         historyTableLayout.removeViews(1, historyTableLayout.childCount - 1)
                     }
@@ -250,12 +258,58 @@ class HistoryActivity : AppCompatActivity() {
                         noEntriesTextView.gravity = Gravity.CENTER
                         noEntriesTextView.setPadding(8, 8, 8, 8)
                         noEntriesTextView.setTextColor(ContextCompat.getColor(this, R.color.black))
-                        val spanCount = 1 + customItemsList.size // 1 for date, plus number of custom items
+                        val spanCount = 1 + customItemsList.size
                         noEntriesRow.addView(noEntriesTextView, TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT, spanCount.toFloat()))
                         historyTableLayout.addView(noEntriesRow)
                     } else {
+                        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        val calendar = Calendar.getInstance()
+                        var currentMonth = -1
+                        var currentWeek = -1
+                        var previousDate: Date? = null
+
                         for (doc in snapshots.documents) {
-                            val date = doc.id // Document ID is the date (e.g., "2025-08-06")
+                            val dateString = doc.id
+                            val currentDate = try { dateFormat.parse(dateString) } catch (e: Exception) { null }
+
+                            if (currentDate != null) {
+                                calendar.time = currentDate
+                                val newMonth = calendar.get(Calendar.MONTH)
+                                val newWeek = calendar.get(Calendar.WEEK_OF_YEAR)
+
+                                // Add a divider for a new month
+                                if (newMonth != currentMonth || currentMonth == -1) {
+                                    val monthDividerRow = TableRow(this)
+                                    val monthDividerTextView = TextView(this)
+                                    monthDividerTextView.text = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(currentDate)
+                                    monthDividerTextView.setTextColor(ContextCompat.getColor(this, R.color.black))
+                                    monthDividerTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                                    monthDividerTextView.setTypeface(null, Typeface.BOLD)
+                                    monthDividerTextView.gravity = Gravity.CENTER
+                                    monthDividerTextView.setPadding(0, 16, 0, 16)
+                                    val layoutParams = TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT, (1 + customItemsList.size).toFloat())
+                                    layoutParams.span = 1 + customItemsList.size // Span all columns
+                                    monthDividerRow.addView(monthDividerTextView, layoutParams)
+                                    historyTableLayout.addView(monthDividerRow)
+                                    currentMonth = newMonth
+                                }
+
+                                // Add a divider for a new week (if not also a new month)
+                                if (newWeek != currentWeek && (previousDate != null && Calendar.getInstance().apply { time = previousDate }.get(Calendar.MONTH) == newMonth)) {
+                                    val weekDividerRow = TableRow(this)
+                                    val weekDividerTextView = TextView(this)
+                                    weekDividerTextView.text = "--- Week ${newWeek} ---"
+                                    weekDividerTextView.setTextColor(ContextCompat.getColor(this, R.color.black))
+                                    weekDividerTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                                    weekDividerTextView.gravity = Gravity.CENTER
+                                    val layoutParams = TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT, (1 + customItemsList.size).toFloat())
+                                    layoutParams.span = 1 + customItemsList.size // Span all columns
+                                    weekDividerRow.addView(weekDividerTextView, layoutParams)
+                                    historyTableLayout.addView(weekDividerRow)
+                                }
+                                currentWeek = newWeek
+                                previousDate = currentDate
+                            }
 
                             val tableRow = TableRow(this)
                             tableRow.layoutParams = TableLayout.LayoutParams(
@@ -264,18 +318,16 @@ class HistoryActivity : AppCompatActivity() {
                             )
                             tableRow.setPadding(0, 4, 0, 4)
 
-                            // Date TextView
                             val dateTextView = TextView(this)
-                            dateTextView.text = date
+                            dateTextView.text = dateString
                             dateTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                             dateTextView.gravity = Gravity.CENTER
                             dateTextView.setPadding(8, 8, 8, 8)
                             dateTextView.setTextColor(ContextCompat.getColor(this, R.color.black))
                             tableRow.addView(dateTextView, TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT))
 
-                            // Dynamically add TextViews for each custom item
                             for (itemName in customItemsList) {
-                                val itemState = doc.getBoolean(itemName) // Get state for this item
+                                val itemState = doc.getBoolean(itemName)
                                 val itemTextView = TextView(this)
                                 itemTextView.text = if (itemState == true) "Yes" else if (itemState == false) "No" else "-"
                                 itemTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
@@ -314,7 +366,7 @@ class HistoryActivity : AppCompatActivity() {
             Toast.makeText(this, "Signed out.", Toast.LENGTH_SHORT).show()
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
-            finish() // Finish HistoryActivity when logging out
+            finish()
         }
     }
 }
